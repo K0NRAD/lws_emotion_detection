@@ -44,8 +44,8 @@ check_installed "System dependencies"
 
 # Python virtuelle Umgebung
 echo -e "\n${YELLOW}Creating virtual environment...${NC}"
-python3 -m venv emotion_env
-source emotion_env/bin/activate
+python3 -m venv .env
+source .env/bin/activate
 check_installed "Virtual environment"
 
 # Pip upgrade

@@ -7,15 +7,13 @@ Ein Python-basiertes System zur Emotionserkennung in Echtzeit mit automatischer 
 
 - Echtzeit-Gesichtserkennung
 - Emotionserkennung (Fokus auf Lächeln)
-- Adaptive Framerate für optimale Performance
-- Dual-Relais-Steuerung (je 2 Sekunden Aktivierung)
+- Dual-Relais-Steuerung (je 4 Sekunden Aktivierung)
 - Performance-Optimierung für Raspberry Pi 3+
 - Konfigurierbares Debug-Interface
-- Automatischer Systemstart als Service
 
 ## 🔧 Hardware-Anforderungen
 
-- Raspberry Pi 3+ (oder besser)
+- Raspberry Pi 4B+ (oder besser)
 - USB-Webcam
 - 2x Relais-Module (5V)
 - Jumper-Kabel
@@ -23,9 +21,9 @@ Ein Python-basiertes System zur Emotionserkennung in Echtzeit mit automatischer 
 
 ## 📋 Pin-Belegung
 
-| Component      | GPIO Pin | Beschreibung        |
-|---------------|----------|---------------------|
-| Happy Relay   | GPIO 17  | Aktiv bei Lächeln   |
+| Component      | GPIO Pin | Beschreibung            |
+|----------------|----------|-------------------------|
+| Happy Relay    | GPIO 17  | Aktiv bei Lächeln       |
 | Not Happy Relay| GPIO 18  | Aktiv bei nicht Lächeln |
 
 ## 🛠 Installation
@@ -48,27 +46,6 @@ sudo systemctl start emotion-detection.service
 sudo systemctl enable emotion-detection.service
 ```
 
-## ⚙️ Konfiguration
-
-Die Konfiguration erfolgt über die `config.py`:
-
-```python
-# Beispiel-Konfiguration
-RELAY_CONFIG = {
-    'HAPPY_PIN': 17,
-    'NOT_HAPPY_PIN': 18,
-    'ACTIVE_LOW': True,
-    'RELAY_DURATION': 2.0
-}
-
-CAMERA_CONFIG = {
-    'WIDTH': 320,
-    'HEIGHT': 240,
-    'FPS': 10,
-    'DEVICE': 0
-}
-```
-
 ## 🚀 Verwendung
 
 ### Manuelle Ausführung:
@@ -89,19 +66,11 @@ sudo journalctl -u emotion-detection.service -f
 sudo systemctl restart emotion-detection.service
 ```
 
-## 📊 Performance
-
-Das System verwendet eine adaptive Framerate-Anpassung:
-- Automatische Anpassung der Verarbeitungsrate
-- Optimierung für Raspberry Pi 3+
-- Typische Performance: 5-10 FPS bei Emotionserkennung
-
 ## 🔍 Debug-Modus
 
 Der Debug-Modus kann in der `config.py` aktiviert werden:
 ```python
 DEBUG_CONFIG = {
-    'SHOW_FPS': True,
     'SHOW_DETECTION_BOXES': True,
     'LOG_LEVEL': 'DEBUG'
 }
@@ -111,11 +80,11 @@ DEBUG_CONFIG = {
 
 ```
 emotion_detection/
-├── emotion_detector.py    # Hauptprogramm
-├── config.py             # Konfigurationsdatei
-├── install_requirements.sh # Installations-Script
-├── requirements.txt      # Python-Abhängigkeiten
-└── emotion_env/         # Virtuelle Umgebung
+├── emotion_detection.py     # Hauptprogramm
+├── config.py                # Konfigurationsdatei
+├── install_requirements.sh  # Installations-Script
+├── requirements.txt         # Python-Abhängigkeiten
+└── .env/                    # Virtuelle Umgebung
 ```
 
 ## 🔄 Updates
@@ -145,14 +114,6 @@ sudo journalctl -u emotion-detection.service -f
 - GPIO-Pins sind durch Pull-down-Widerstände geschützt
 - Service läuft mit eingeschränkten Rechten
 - Automatische Relais-Deaktivierung nach Timeout
-
-## 📈 Performance-Optimierung
-
-Das System verwendet mehrere Optimierungstechniken:
-1. Adaptive Framerate-Anpassung
-2. Bildverkleinerung für Analyse
-3. Frame-Skipping bei hoher Last
-4. Caching von Erkennungsergebnissen
 
 ## 📄 Lizenz
 
