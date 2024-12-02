@@ -1,10 +1,16 @@
 import time
-import ctypes
+import os
+import random
+
+import numpy as np
+import pygame
 
 import RPi.GPIO as GPIO
 import cv2
+
 from cvzone.FaceMeshModule import FaceMeshDetector
 from screeninfo import get_monitors
+
 from config import *
 
 
@@ -42,6 +48,21 @@ class EmotionDetector:
         self.relay_timer = 0
         self.relay_active = False
         self.current_relay = None
+
+        self.balloons = []
+        for img_balloon_file in os.listdir("resources/balloon_popping_game/"):
+            if img_balloon_file.startswith("balloon_"):
+                image_balloon = pygame.image.load(f'resources/balloon_popping_game/{img_balloon_file}').convert_alpha()
+                rect_balloon = image_balloon.get_rect()
+                rect_balloon.x, rect_balloon.y = random.randint(80, 1200), 720 - random.randint(0, 150)
+                speed = random.randint(5, 15)
+                self.balloons.append({
+                    'image': image_balloon,
+                    'rect': rect_balloon,
+                    'speed': speed,
+                    'popped': False
+                })
+
 
     def setup_gpio(self):
         GPIO.setmode(GPIO.BCM)
