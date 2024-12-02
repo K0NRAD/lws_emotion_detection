@@ -1,0 +1,156 @@
+import os
+import random
+
+import cv2
+import numpy as np
+import pygame
+from cvzone.FaceMeshModule import FaceMeshDetector
+from screeninfo import get_monitors
+
+from config import *
+
+
+class EmotionDetector:
+    def __init__(self):
+        pygame.init()
+
+        # Display Setup
+        pygame.display.set_caption("wmotion detection")
+        self.width = get_monitors()[CAMERA_CONFIG['DEVICE']].width
+        self.height = get_monitors()[CAMERA_CONFIG['DEVICE']].height
+        self.window = pygame.display.set_mode((self.width, self.height), pygame.NOFRAME)
+
+        # Camera Setup
+        self.cap = cv2.VideoCapture(CAMERA_CONFIG['DEVICE'])
+        if not self.cap.isOpened():
+            raise ValueError("Failed to open camera")
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+        self.cap.set(cv2.CAP_PROP_FPS, CAMERA_CONFIG['FPS'])
+
+        # Emotion Detection Setup
+        self.detector = FaceMeshDetector(maxFaces=EMOTION_DETECTION_CONFIG['MAX_FACES'])
+        self.LEFT_MOUTH_LANDMARK = 61
+        self.RIGHT_MOUTH_LANDMARK = 291
+        self.TOP_LIP_LANDMARK = 13
+        self.BOTTOM_LIP_LANDMARK = 14
+        self.FOREHEAD_LANDMARK = 10
+        self.CHIN_LANDMARK = 152
+
+        self.items = []
+        for item_file in os.listdir("resources/emotion_detector/"):
+            if item_file.startswith("heart_"):
+                item = pygame.image.load(f'resources/emotion_detector/{item_file}').convert_alpha()
+                item = pygame.transform.scale(item, (200, 200))
+                rect_item = item.get_rect()
+                rect_item.x, rect_item.y = random.randint(80, 1200), 720 - random.randint(0, 150)
+                speed = random.randint(5, 15)
+                self.items.append({
+                    'image': item,
+                    'rect': rect_item,
+                    'speed': speed
+                })
+
+    def reset_items(self, image, item):
+        item.get('rect').x = random.randint(100, image.shape[1] - 100)
+        item.get('rect').y = image.shape[0] + 50
+        item.update({'speed': random.randint(5, 25)})
+
+    def draw_halo(self, frame, face):
+        print("----")
+
+    def run(self):
+        print("Starte Emotion Detection... Drücke 'q' zum Beenden")
+        try:
+            is_happy = False
+            running = True
+            while running:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        running = False
+                        continue
+                    elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                        running = False
+                        continue
+
+                success, original_frame = self.cap.read()
+                if not success or original_frame is None:
+                    break
+
+                original_frame = cv2.flip(original_frame, 1)
+
+                # Face detection auf dem Original-Frame
+                if not is_happy:
+                    frame_with_mesh, faces = (self.detector
+                                              .findFaceMesh(original_frame, draw=DEBUG_CONFIG['SHOW_FACE_MESHES']))
+
+                    if faces:
+                        for face in faces:
+                            leftMouth = face[self.LEFT_MOUTH_LANDMARK]
+                            rightMouth = face[self.RIGHT_MOUTH_LANDMARK]
+                            topLip = face[self.TOP_LIP_LANDMARK]
+                            bottomLip = face[self.BOTTOM_LIP_LANDMARK]
+
+                            mouthOpenRatio = (bottomLip[1] - topLip[1]) / (rightMouth[0] - leftMouth[0])
+
+                            is_happy = None
+                            if mouthOpenRatio > EMOTION_DETECTION_CONFIG['IS_HAPPY']:
+                                is_happy = True
+                            if mouthOpenRatio < EMOTION_DETECTION_CONFIG['IS_NOT_HAPPY']:
+                                is_happy = False
+
+                            if DEBUG_CONFIG['SHOW_DETECTION_BOXES']:
+                                x_coords = [p[0] for p in face]
+                                y_coords = [p[1] for p in face]
+                                x_min, x_max = min(x_coords), max(x_coords)
+                                y_min, y_max = min(y_coords), max(y_coords)
+                                cv2.rectangle(frame_with_mesh, (int(x_min - 10), int(y_min - 10)),
+                                              (int(x_max + 10), int(y_max + 10)),
+                                              (0, 255, 0), 2)
+
+                    # Verwende frame_with_mesh für die Anzeige
+                    display_frame = frame_with_mesh
+                else:
+                    display_frame = original_frame
+
+                # Konvertierung für pygame
+                img_rgb = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
+                img_rgb = np.rot90(img_rgb)
+                pygame_surface = pygame.surfarray.make_surface(img_rgb).convert()
+                pygame_surface = pygame.transform.flip(pygame_surface, True, False)
+                self.window.blit(pygame_surface, (0, 0))
+
+                if is_happy:
+                    n_items = len(self.items)
+                    for item in self.items:
+                        item.get('rect').y -= item.get('speed')
+                        self.window.blit(item.get('image'), (item.get('rect').x, item.get('rect').y))
+                        if item.get('rect').y < -item.get('rect').height:
+                            n_items -= 1
+                    if n_items == 0:
+                        for item in self.items:
+                            self.reset_items(display_frame, item)
+                        is_happy = False
+
+                pygame.display.update()
+
+        except KeyboardInterrupt:
+            print("\nProgramm durch Benutzer beendet")
+        except Exception as e:
+            print(f"Fehler während der Ausführung: {str(e)}")
+        finally:
+            self.cleanup()
+
+    def cleanup(self):
+        print("Cleanup...")
+        self.cap.release()
+        cv2.destroyAllWindows()
+        print(f"Exit programm.")
+
+
+if __name__ == "__main__":
+    try:
+        detector = EmotionDetector()
+        detector.run()
+    except Exception as e:
+        print(f"Failed to start Emotion Detection: {str(e)}")
